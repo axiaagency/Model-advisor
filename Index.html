@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Model Benchmark & Cost Modeling Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      text-align: left;
+    }
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background-color: #0f172a;
+      color: var(--accent);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:hover { background-color: #283548; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    input, select {
+      background-color: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .metric-card {
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+    }
+    .metric-title { font-size: 0.8rem; color: var(--text-muted); }
+    .metric-value { font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: #fff; }
+    .metric-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>AI Benchmark & Cost Intelligence Dashboard</h1>
+
+  <!-- PART 1: LIVE BENCHMARK & PRICING CHART -->
+  <div class="card">
+    <h2>1. Model Rankings, Benchmarks & Costs</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      Includes human preference Elo rankings (LMArena) alongside flat subscription fees vs. pay-as-you-go API token pricing.
+    </p>
+    <div style="overflow-x: auto;">
+      <table id="benchmarkTable">
+        <thead>
+          <tr>
+            <th>Model Family</th>
+            <th>Model Name</th>
+            <th>LMArena Elo</th>
+            <th>Chat Interface Cost</th>
+            <th>API Input / 1M Tokens</th>
+            <th>API Output / 1M Tokens</th>
+            <th>Primary Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows inserted dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PART 2: MODELING & FORECASTING CALCULATOR -->
+  <div class="card">
+    <h2>2. Scenario Modeling & Cost Forecasting</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      Select a model, enter your estimated usage, and compare monthly execution cost between standard web subscription vs API usage.
+    </p>
+    
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="modelSelect">Select Target Model</label>
+        <select id="modelSelect" onchange="calculateCost()"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="avgInputWords">Avg. Input Words / Request</label>
+        <input type="number" id="avgInputWords" value="500" oninput="calculateCost()">
+      </div>
+
+      <div class="form-group">
+        <label for="avgOutputWords">Avg. Output Words / Request</label>
+        <input type="number" id="avgOutputWords" value="800" oninput="calculateCost()">
+      </div>
+
+      <div class="form-group">
+        <label for="reqPerDay">Requests / Day</label>
+        <input type="number" id="reqPerDay" value="50" oninput="calculateCost()">
+      </div>
+
+      <div class="form-group">
+        <label for="usersCount">Number of Users / Seats</label>
+        <input type="number" id="usersCount" value="1" oninput="calculateCost()">
+      </div>
+    </div>
+
+    <div class="results-grid">
+      <div class="metric-card">
+        <div class="metric-title">Monthly Token Volume</div>
+        <div class="metric-value" id="totalTokens">0 M</div>
+        <div class="metric-desc">Est. combined input & output tokens</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Est. API Monthly Cost</div>
+        <div class="metric-value" id="apiCost" style="color: #38bdf8;">$0.00</div>
+        <div class="metric-desc">Pay-per-token API price</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Chat Interface Monthly Cost</div>
+        <div class="metric-value" id="chatCost" style="color: #a855f7;">$0.00</div>
+        <div class="metric-desc">Flat subscription (Web / Apps)</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Recommended Option</div>
+        <div class="metric-value" id="recommendation" style="font-size: 1.1rem; color: #4ade80;">-</div>
+        <div class="metric-desc" id="recommendationSub">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const models = [
+    { provider: 'Google', name: 'Gemini 4 Argon', elo: 1533, chat: 20, apiIn: 2.50, apiOut: 10.00, bestFor: 'Deep reasoning, enterprise work, 1M context' },
+    { provider: 'Anthropic', name: 'Claude Opus 5.5', elo: 1516, chat: 20, apiIn: 5.00, apiOut: 20.00, bestFor: 'Complex writing, long-form coding, analysis' },
+    { provider: 'Anthropic', name: 'Claude Fable 5.1', elo: 1510, chat: 20, apiIn: 10.00, apiOut: 50.00, bestFor: 'Agentic tasks, desktop OS automation' },
+    { provider: 'Google', name: 'Gemini 3.8 Flash', elo: 1499, chat: 0, apiIn: 0.75, apiOut: 3.75, bestFor: 'Fast multimodal tasks, search integration' },
+    { provider: 'OpenAI', name: 'GPT-5.5', elo: 1471, chat: 20, apiIn: 5.00, apiOut: 30.00, bestFor: 'Generalist workflows, ecosystem integrations' },
+    { provider: 'Anthropic', name: 'Claude Sonnet 5.5', elo: 1471, chat: 20, apiIn: 2.00, apiOut: 10.00, bestFor: 'Daily coding, agentic tool-use, writing' },
+    { provider: 'OpenAI', name: 'GPT-6.1 Sol', elo: 1448, chat: 20, apiIn: 2.00, apiOut: 10.00, bestFor: 'Structured logic, wide application tasks' },
+    { provider: 'Google', name: 'Gemini 3.5 Flash-Lite', elo: 1435, chat: 0, apiIn: 0.10, apiOut: 0.40, bestFor: 'High-volume background processing' }
+  ];
+
+  const WORDS_TO_TOKENS = 1.33; // Approx 1 word = 1.33 tokens
+
+  function populateTable() {
+    const tbody = document.querySelector('#benchmarkTable tbody');
+    const select = document.getElementById('modelSelect');
+    
+    tbody.innerHTML = '';
+    select.innerHTML = '';
+
+    models.forEach((m, idx) => {
+      // Table Row
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${m.provider}</strong></td>
+        <td>${m.name}</td>
+        <td><b style="color:#38bdf8">${m.elo}</b></td>
+        <td>${m.chat === 0 ? 'Free Tier' : '$' + m.chat + '/mo per user'}</td>
+        <td>$${m.apiIn.toFixed(2)}</td>
+        <td>$${m.apiOut.toFixed(2)}</td>
+        <td style="color:var(--text-muted); font-size:0.85rem;">${m.bestFor}</td>
+      `;
+      tbody.appendChild(row);
+
+      // Select Option
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${m.provider} - ${m.name}`;
+      select.appendChild(opt);
+    });
+  }
+
+  function calculateCost() {
+    const idx = document.getElementById('modelSelect').value;
+    const model = models[idx];
+
+    const inWords = parseFloat(document.getElementById('avgInputWords').value) || 0;
+    const outWords = parseFloat(document.getElementById('avgOutputWords').value) || 0;
+    const reqs = parseFloat(document.getElementById('reqPerDay').value) || 0;
+    const users = parseFloat(document.getElementById('usersCount').value) || 1;
+
+    const daysInMonth = 30;
+    const totalRequests = reqs * daysInMonth * users;
+
+    const inputTokensTotal = totalRequests * inWords * WORDS_TO_TOKENS;
+    const outputTokensTotal = totalRequests * outWords * WORDS_TO_TOKENS;
+    const totalTokensMillion = (inputTokensTotal + outputTokensTotal) / 1000000;
+
+    // API Cost calculation
+    const inputCost = (inputTokensTotal / 1000000) * model.apiIn;
+    const outputCost = (outputTokensTotal / 1000000) * model.apiOut;
+    const totalApiCost = inputCost + outputCost;
+
+    // Chat Interface Cost
+    const totalChatCost = model.chat * users;
+
+    // Render Metrics
+    document.getElementById('totalTokens').textContent = totalTokensMillion.toFixed(2) + ' M';
+    document.getElementById('apiCost').textContent = '$' + totalApiCost.toFixed(2);
+    document.getElementById('chatCost').textContent = totalChatCost === 0 ? 'Free' : '$' + totalChatCost.toFixed(2);
+
+    // Recommendation logic
+    const recElem = document.getElementById('recommendation');
+    const recSub = document.getElementById('recommendationSub');
+
+    if (totalChatCost === 0) {
+      recElem.textContent = 'API or Free Chat';
+      recElem.style.color = '#38bdf8';
+      recSub.textContent = 'Model offers a free chat web tier.';
+    } else if (totalApiCost < totalChatCost) {
+      const savings = (totalChatCost - totalApiCost).toFixed(2);
+      recElem.textContent = 'API Deployment';
+      recElem.style.color = '#4ade80';
+      recSub.textContent = `Saves ~$${savings}/mo compared to subscriptions.`;
+    } else {
+      const excess = (totalApiCost - totalChatCost).toFixed(2);
+      recElem.textContent = 'Chat Subscription';
+      recElem.style.color = '#a855f7';
+      recSub.textContent = `Fixed rate saves ~$${excess}/mo over high API volume.`;
+    }
+  }
+
+  // Initialize
+  populateTable();
+  calculateCost();
+</script>
+</body>
+</html>
